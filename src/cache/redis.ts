@@ -13,12 +13,12 @@ export default class RedisContext {
 
     this.client = createClient({
       socket: {
-          host: redis_host,
-          port: parseInt(redis_port as string, 6379)
+        host: redis_host,
+        port: redis_port,
       },
-      password: redis_password
+      password: redis_password,
     });
-  
+
     return this.client;
   }
   static getConnect() {
