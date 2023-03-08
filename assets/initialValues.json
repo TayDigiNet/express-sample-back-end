@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "admin": [
+      { "tableName": "user", "create": true, "update": true, "read": true, "delete": true },
+      { "tableName": "news", "create": true, "update": true, "read": true, "delete": true }
+    ],
+    "user": [
+      { "tableName": "user", "create": false, "update": true, "read": true, "delete": false },
+      { "tableName": "news", "create": false, "update": false, "read": true, "delete": false }
+    ],
+    "projecter": [
+      { "tableName": "user", "create": false, "update": true, "read": true, "delete": false },
+      { "tableName": "news", "create": false, "update": false, "read": true, "delete": false }
+    ]
+  }
+}
