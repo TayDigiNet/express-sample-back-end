@@ -17,6 +17,8 @@ export default interface NewsDTO {
   imageBannerOriginalName?: string;
   imageBannerDimensions?: string;
   draft?: boolean;
+  viewsCount: number;
+  sharedCount: number;
 }
 
 export interface NewsInput {

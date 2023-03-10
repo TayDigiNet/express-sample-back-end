@@ -10,8 +10,8 @@ import DBContext from "./entities";
 import bodyParser from "body-parser";
 import middlewares from "./middlewares";
 import RedisContext from "./cache/redis";
-import Mailer from './helpers/mailer';
-const path = require('path');
+import Mailer from "./helpers/mailer";
+const path = require("path");
 dotenv.config();
 
 /**
@@ -29,7 +29,7 @@ const db = DBContext.connect();
 const redis = RedisContext.connect();
 redis.on("error", (err: any) => console.log("Redis Client Error", err));
 redis.connect();
-const fs = require('fs');
+const fs = require("fs");
 const app = express();
 
 // Init Mailer
@@ -60,24 +60,28 @@ Mailer.connect();
  */
 
 // create upload folder for the tables
-var dir = path.join(__dirname, process.env.UPLOAD_PATH, process.env.FOLDER_EVENT);
-if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir, { recursive: true });
+var dir = path.join(
+  __dirname,
+  process.env.UPLOAD_PATH,
+  process.env.FOLDER_EVENT
+);
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
 }
 dir = path.join(__dirname, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT);
-if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir, { recursive: true });
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
 }
 dir = path.join(__dirname, process.env.UPLOAD_PATH, process.env.FOLDER_NEWS);
-if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir, { recursive: true });
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
 }
 dir = path.join(__dirname, process.env.UPLOAD_PATH, process.env.FOLDER_USERS);
-if (!fs.existsSync(dir)){
-    fs.mkdirSync(dir, { recursive: true });
+if (!fs.existsSync(dir)) {
+  fs.mkdirSync(dir, { recursive: true });
 }
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 app.use(helmet());
 app.use(cors());
 app.use(express.json());

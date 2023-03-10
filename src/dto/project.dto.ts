@@ -10,7 +10,9 @@ export default interface ProjectDTO {
   bannerUrl: string;
   imageUrls: string;
   videoUrls: string;
-  launchDate: Date;
+  launchDate: string;
+  endDate: string;
+  locate: string;
   plan: string;
   blocked: boolean;
   viewsCount: number;
@@ -26,12 +28,14 @@ export default interface ProjectDTO {
   imageAvatarMineType: string;
   imageAvatarOriginalName: string;
   imageAvatarDimensions: string;
-  projectImages: ProjectImageDTO[]
+  projectImages: ProjectImageDTO[];
   published: boolean;
   expiredAt: Date;
   requestApproved: boolean;
   requestUpdated: ProjectInput;
   draft?: boolean;
+  likeCount: number;
+  shareCount: number;
 }
 
 export interface ProjectInput {
@@ -41,7 +45,9 @@ export interface ProjectInput {
   bannerUrl?: string;
   imageUrls?: string;
   videoUrls?: string;
-  launchDate: Date;
+  launchDate: string;
+  endDate: string;
+  locate: string;
   plan: string;
   RepresentativeId?: number;
   ProjectOperatorsIds?: string;
@@ -57,7 +63,7 @@ export interface ProjectInput {
   expiredAt?: Date;
   requestApproved?: boolean;
   requestUpdated?: any;
-  projectImages?: ProjectImageDTO[]
+  projectImages?: ProjectImageDTO[];
   removedImageNames?: string;
   draft?: boolean;
   viewsCount: number;

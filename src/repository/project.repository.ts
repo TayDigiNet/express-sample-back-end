@@ -18,18 +18,52 @@ export default class ProjectRepository implements ProjectInterface {
   private Like = DBContext.getConnect().like;
 
   async getProjects(
-    data?: Partial<QueryOptions & { ProjectCategoryId: number; CreaterId: number; user: UserDTO; unexpired: string, userRole: boolean, requestApproved: boolean, published: boolean, ToDate: Date, FromDate: Date, allExcludeRequestApproved: boolean, draft: string }>
+    data?: Partial<
+      QueryOptions & {
+        ProjectCategoryId: number;
+        CreaterId: number;
+        user: UserDTO;
+        unexpired: string;
+        userRole: boolean;
+        requestApproved: boolean;
+        published: boolean;
+        ToDate: Date;
+        FromDate: Date;
+        allExcludeRequestApproved: boolean;
+        draft: string;
+      }
+    >
   ): Promise<QueryResponse<ProjectDTO>> {
     let includes: any = [];
     let filters: any = {};
     let query: any = {};
 
-    if(data?.user !== undefined || data?.userRole !== undefined || (typeof data?.populate !== "undefined" && (data?.populate === "*" || data?.populate.includes("creater")))){
-      if(data?.userRole !== undefined){
-        includes = [...includes, { model: this.Users, as: "creater", required: true, include: {model: this.Role, as: "role", required: true, where: {name: "user"}} }];
-      }
-      else{
-        includes = [...includes, { model: this.Users, as: "creater", attributes: PublicUserDTO}];
+    if (
+      data?.user !== undefined ||
+      data?.userRole !== undefined ||
+      (typeof data?.populate !== "undefined" &&
+        (data?.populate === "*" || data?.populate.includes("creater")))
+    ) {
+      if (data?.userRole !== undefined) {
+        includes = [
+          ...includes,
+          {
+            model: this.Users,
+            as: "creater",
+            required: true,
+            include: {
+              model: this.Role,
+              as: "role",
+              required: true,
+              where: { name: "user" },
+            },
+          },
+        ];
+      } else {
+        includes = [
+          ...includes,
+          { model: this.Users, as: "creater", attributes: PublicUserDTO },
+        ];
       }
     }
 
@@ -63,42 +97,43 @@ export default class ProjectRepository implements ProjectInterface {
     if (typeof data?.CreaterId === "number") {
       filters.CreaterId = data.CreaterId;
     }
-    if(data?.user !== undefined){
+    if (data?.user !== undefined) {
       filters.CreaterId = data?.user?.id;
     }
-    if(data?.unexpired !== undefined){
+    if (data?.unexpired !== undefined) {
       filters.expiredAt = {
-        [Op.gt]: Sequelize.literal('NOW()')
-      }
+        [Op.gt]: Sequelize.literal("NOW()"),
+      };
     }
-    if(data?.requestApproved !== undefined){
+    if (data?.requestApproved !== undefined) {
       filters.requestApproved = true;
     }
-    if(data?.published !== undefined){
+    if (data?.published !== undefined) {
       filters.published = true;
     }
-    if(data?.allExcludeRequestApproved !== undefined){
+    if (data?.allExcludeRequestApproved !== undefined) {
       filters.requestApproved = {
-        [Op.not]: true
-      }
+        [Op.not]: true,
+      };
     }
-    if(data && data.FromDate && data.ToDate){
-      filters[Op.and] = [{
-        createdAt: {
-          [Op.gt]: data.FromDate
-        }
-      },
-      {
-        createdAt: {
-          [Op.lt]: data.ToDate
-        }
-      }];
+    if (data && data.FromDate && data.ToDate) {
+      filters[Op.and] = [
+        {
+          createdAt: {
+            [Op.gt]: data.FromDate,
+          },
+        },
+        {
+          createdAt: {
+            [Op.lt]: data.ToDate,
+          },
+        },
+      ];
     }
-    if(data?.draft !== undefined){
-      if(JSON.parse(data.draft)){
+    if (data?.draft !== undefined) {
+      if (JSON.parse(data.draft)) {
         filters.draft = true;
-      }
-      else{
+      } else {
         filters.draft = false;
       }
     }
@@ -109,7 +144,7 @@ export default class ProjectRepository implements ProjectInterface {
     } else {
       sort = [["updatedAt", "desc"]];
     }
-    
+
     if (typeof data?.populate !== "undefined") {
       if (data?.populate === "*") {
         includes = [
@@ -122,7 +157,7 @@ export default class ProjectRepository implements ProjectInterface {
             model: this.Person,
             as: "representative",
           },
-          { model: this.ProjectImages, as: "projectImages" }
+          { model: this.ProjectImages, as: "projectImages" },
         ];
       } else {
         if (data?.populate.includes("projectOperators")) {
@@ -144,20 +179,30 @@ export default class ProjectRepository implements ProjectInterface {
           ];
         }
         if (data?.populate.includes("projectImages")) {
-          includes = [...includes, { model: this.ProjectImages, as: "projectImages" }];
+          includes = [
+            ...includes,
+            { model: this.ProjectImages, as: "projectImages" },
+          ];
         }
       }
     }
     query = {
-      attributes: { 
-        include: [[Sequelize.literal("(SELECT COUNT(*) FROM Comments where Comments.ProjectId=Project.id)"), "commentCount"]]
+      attributes: {
+        include: [
+          [
+            Sequelize.literal(
+              "(SELECT COUNT(*) FROM Comments where Comments.ProjectId=Project.id)"
+            ),
+            "commentCount",
+          ],
+        ],
       },
       where: filters,
       order: sort,
       include: includes,
-      distinct: true
-    }
-    if(data && data.offset != null && data.limit != null){
+      distinct: true,
+    };
+    if (data && data.offset != null && data.limit != null) {
       query.offset = data.offset;
       query.limit = data.limit;
     }
@@ -181,7 +226,9 @@ export default class ProjectRepository implements ProjectInterface {
     };
   }
 
-  async getProjectById(data?: Partial<QueryOptions & { id: number, UserId: number }>): Promise<ProjectDTO | undefined> {
+  async getProjectById(
+    data?: Partial<QueryOptions & { id: number; UserId: number }>
+  ): Promise<ProjectDTO | undefined> {
     let includes: any = [
       {
         model: this.Person,
@@ -192,13 +239,23 @@ export default class ProjectRepository implements ProjectInterface {
         as: "representative",
       },
       { model: this.Users, as: "creater", attributes: PublicUserDTO },
-      { model: this.ProjectImages, as: "projectImages" }
+      { model: this.ProjectImages, as: "projectImages" },
     ];
-    if(data?.UserId !== undefined){
+    if (data?.UserId !== undefined) {
       includes = [
         ...includes,
-        { model: this.Wishlist, required: false, as: "wishlistProjects", where:{ UserId: data.UserId} },
-        { model: this.Like, required: false, as: "likeProjects", where:{ UserId: data.UserId} },
+        {
+          model: this.Wishlist,
+          required: false,
+          as: "wishlistProjects",
+          where: { UserId: data.UserId },
+        },
+        {
+          model: this.Like,
+          required: false,
+          as: "likeProjects",
+          where: { UserId: data.UserId },
+        },
       ];
     }
     const record = await this.Project.findByPk(data?.id, {
@@ -221,18 +278,24 @@ export default class ProjectRepository implements ProjectInterface {
     data: ProjectInput & { slug: string; CreaterId: number }
   ): Promise<ProjectDTO | undefined> {
     const { ProjectOperatorsIds, ...inputData } = data;
-    const newRecord = await this.Project.create({
-      ...inputData,
-      blocked: false,
-      commentCount: 0,
-      viewsCount: 0
-    }, {
-      include: [{
-        model: this.ProjectImages,
-        as: "projectImages",
-      }]
-    });
-    if(data.ProjectOperatorsIds){
+    const newRecord = await this.Project.create(
+      {
+        ...inputData,
+        blocked: false,
+        commentCount: 0,
+        viewsCount: 0,
+        shareCount: 0,
+      },
+      {
+        include: [
+          {
+            model: this.ProjectImages,
+            as: "projectImages",
+          },
+        ],
+      }
+    );
+    if (data.ProjectOperatorsIds) {
       let projectOperatorsIds = JSON.parse(data.ProjectOperatorsIds || "");
       for (const personId of projectOperatorsIds as number[]) {
         await this.ProjectOperators.create({
@@ -253,7 +316,7 @@ export default class ProjectRepository implements ProjectInterface {
   ): Promise<ProjectDTO | undefined> {
     const { ProjectOperatorsIds, ...inputData } = data;
     let record = await this.Project.findByPk(id);
-    if(!record || (record && data.UserId && data.UserId != record.CreaterId)){
+    if (!record || (record && data.UserId && data.UserId != record.CreaterId)) {
       throw "Not found the project";
     }
     await record.update({
@@ -265,7 +328,7 @@ export default class ProjectRepository implements ProjectInterface {
           ProjectId: id,
         },
       });
-      if(data.ProjectOperatorsIds){
+      if (data.ProjectOperatorsIds) {
         let projectOperatorsIds = JSON.parse(data.ProjectOperatorsIds || "");
         for (const personId of projectOperatorsIds as number[]) {
           await this.ProjectOperators.create({
@@ -275,7 +338,7 @@ export default class ProjectRepository implements ProjectInterface {
         }
       }
     }
-    if(inputData.projectImages){
+    if (inputData.projectImages) {
       for (const projectImage of inputData.projectImages) {
         await this.ProjectImages.create({
           ...projectImage,
@@ -284,9 +347,9 @@ export default class ProjectRepository implements ProjectInterface {
       }
     }
 
-    record = await this.Project.findByPk(id, {include: [
-      { model: this.ProjectImages, as: "projectImages" },
-    ]});
+    record = await this.Project.findByPk(id, {
+      include: [{ model: this.ProjectImages, as: "projectImages" }],
+    });
     return {
       ...record.dataValues,
       ProjectOperatorsIds: ProjectOperatorsIds,

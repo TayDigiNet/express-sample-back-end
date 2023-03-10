@@ -13,7 +13,15 @@ export default class NewsRepository implements NewsInterface {
   private Category = DBContext.getConnect().category;
 
   async getNewses(
-    data?: Partial<QueryOptions & { CategoryId: number; CreaterId: number; ToDate: Date; FromDate: Date, all: string }>
+    data?: Partial<
+      QueryOptions & {
+        CategoryId: number;
+        CreaterId: number;
+        ToDate: Date;
+        FromDate: Date;
+        all: string;
+      }
+    >
   ): Promise<QueryResponse<NewsDTO>> {
     let includes: any = [];
     let filters: any = {};
@@ -43,7 +51,7 @@ export default class NewsRepository implements NewsInterface {
     if (typeof data?.CreaterId === "number") {
       filters.CreaterId = data.CreaterId;
     }
-    if(data?.all === undefined){
+    if (data?.all === undefined) {
       filters.published = true;
     }
     let sort: any = [];
@@ -53,24 +61,26 @@ export default class NewsRepository implements NewsInterface {
       sort = [["updatedAt", "desc"]];
     }
 
-    if(data && data.FromDate && data.ToDate){
-      filters[Op.and] = [{
-        createdAt: {
-          [Op.gt]: data.FromDate
-        }
-      },
-      {
-        createdAt: {
-          [Op.lt]: data.ToDate
-        }
-      }];
+    if (data && data.FromDate && data.ToDate) {
+      filters[Op.and] = [
+        {
+          createdAt: {
+            [Op.gt]: data.FromDate,
+          },
+        },
+        {
+          createdAt: {
+            [Op.lt]: data.ToDate,
+          },
+        },
+      ];
     }
 
     if (typeof data?.populate !== "undefined") {
       if (data?.populate === "*") {
         includes = [
           { model: this.Users, as: "users", attributes: PublicUserDTO },
-          { model: this.Category, as: "category" }
+          { model: this.Category, as: "category" },
         ];
       } else {
         if (data?.populate.includes("users")) {
@@ -80,10 +90,7 @@ export default class NewsRepository implements NewsInterface {
           ];
         }
         if (data?.populate.includes("category")) {
-          includes = [
-            ...includes,
-            { model: this.Category, as: "category" },
-          ];
+          includes = [...includes, { model: this.Category, as: "category" }];
         }
       }
     }
@@ -92,9 +99,9 @@ export default class NewsRepository implements NewsInterface {
       where: filters,
       order: sort,
       include: includes,
-      distinct: true
-    }
-    if(data && data.offset != null && data.limit != null){
+      distinct: true,
+    };
+    if (data && data.offset != null && data.limit != null) {
       query.offset = data.offset;
       query.limit = data.limit;
     }
@@ -102,13 +109,15 @@ export default class NewsRepository implements NewsInterface {
     return newses;
   }
 
-  async getNewsById(data?: Partial<QueryOptions & { id: number, UserId: number }>): Promise<NewsDTO | undefined> {
+  async getNewsById(
+    data?: Partial<QueryOptions & { id: number; UserId: number }>
+  ): Promise<NewsDTO | undefined> {
     let includes: any = [];
     if (typeof data?.populate !== "undefined") {
       if (data?.populate === "*") {
         includes = [
           { model: this.Users, as: "users", attributes: PublicUserDTO },
-          { model: this.Category, as: "category" }
+          { model: this.Category, as: "category" },
         ];
       } else {
         if (data?.populate.includes("users")) {
@@ -118,21 +127,28 @@ export default class NewsRepository implements NewsInterface {
           ];
         }
         if (data?.populate.includes("category")) {
-          includes = [
-            ...includes,
-            { model: this.Category, as: "category" },
-          ];
+          includes = [...includes, { model: this.Category, as: "category" }];
         }
       }
     }
-    if(data?.UserId !== undefined){
+    if (data?.UserId !== undefined) {
       includes = [
         ...includes,
-        { model: this.Wishlist, required: false, as: "wishlistNewses", where:{ UserId: data.UserId} },
-        { model: this.Like, required: false, as: "likeNewses", where:{ UserId: data.UserId} },
+        {
+          model: this.Wishlist,
+          required: false,
+          as: "wishlistNewses",
+          where: { UserId: data.UserId },
+        },
+        {
+          model: this.Like,
+          required: false,
+          as: "likeNewses",
+          where: { UserId: data.UserId },
+        },
       ];
     }
-    const news = await this.News.findByPk(data?.id, {include: includes});
+    const news = await this.News.findByPk(data?.id, { include: includes });
     return news;
   }
 
@@ -141,6 +157,8 @@ export default class NewsRepository implements NewsInterface {
   ): Promise<NewsDTO | undefined> {
     const newNews = await this.News.create({
       ...data,
+      viewsCount: 0,
+      sharedCount: 0,
     });
     return newNews;
   }

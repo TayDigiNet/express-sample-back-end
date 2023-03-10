@@ -11,6 +11,8 @@ export interface IProject {
   imageAvatarUrls?: string;
   videoUrls?: string;
   launchDate: string;
+  endDate: string;
+  locate: string;
   plan: string;
   blocked: boolean;
   viewsCount: number;
@@ -25,6 +27,7 @@ export interface IProject {
   requestApproved: boolean;
   requestUpdated: Json;
   draft?: boolean;
+  shareCount: number;
 }
 
 export function Project(sequelize: any) {
@@ -39,7 +42,9 @@ export function Project(sequelize: any) {
       bannerUrl: { type: DataTypes.STRING, allowNull: true },
       imageUrls: { type: DataTypes.STRING, allowNull: true },
       videoUrls: { type: DataTypes.STRING, allowNull: true },
-      launchDate: { type: DataTypes.DATEONLY, allowNull: false },
+      locate: { type: DataTypes.STRING, allowNull: false },
+      launchDate: { type: DataTypes.TIME, allowNull: false },
+      endDate: { type: DataTypes.TIME, allowNull: false },
       blocked: { type: DataTypes.BOOLEAN },
       viewsCount: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
       imageAvatarName: {
@@ -71,11 +76,12 @@ export function Project(sequelize: any) {
       requestApproved: { type: DataTypes.BOOLEAN, allowNull: false },
       requestUpdated: { type: DataTypes.JSON, allowNull: true },
       draft: { type: DataTypes.BOOLEAN, allowNull: true },
+      shareCount: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
     },
     {
       timestamps: true,
     },
-    {indexes:[{unique:true, fields: ['slug']}]}
+    { indexes: [{ unique: true, fields: ["slug"] }] }
   );
   return Project;
 }
