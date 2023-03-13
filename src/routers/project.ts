@@ -9,47 +9,62 @@ function projectRouter(app: any) {
   app
     .route("/api/projects")
     .get(permission.role(), project.getProjects)
-    .post(permission.role([ROLE.ADMIN, ROLE.USER]), upload.uploadImage.fields([
-      { 
-        name: 'images', 
-        maxCount: 10
-      }, 
-      { 
-        name: 'avatar', 
-        maxCount: 1 
-      }
-    ]), project.updateImages, project.createProject);
+    .post(
+      permission.role([ROLE.ADMIN, ROLE.USER]),
+      upload.uploadImage.fields([
+        {
+          name: "images",
+          maxCount: 10,
+        },
+        {
+          name: "avatar",
+          maxCount: 1,
+        },
+      ]),
+      project.updateImages,
+      project.createProject
+    );
   app
     .route("/api/projects/:id")
     .get(permission.role(), project.getProject)
-    .put(permission.role([ROLE.ADMIN, ROLE.USER]), upload.uploadImage.fields([
-      { 
-        name: 'images', 
-        maxCount: 10
-      }, 
-      { 
-        name: 'avatar', 
-        maxCount: 1 
-      }
-    ]), project.updateImages, project.updateProject)
-    .patch(permission.role([ROLE.ADMIN, ROLE.USER]), upload.uploadImage.fields([
-      { 
-        name: 'images', 
-        maxCount: 10
-      }, 
-      { 
-        name: 'avatar', 
-        maxCount: 1 
-      }
-    ]), project.updateImages, project.updateProjectFields)
+    .put(
+      permission.role([ROLE.ADMIN, ROLE.USER]),
+      upload.uploadImage.fields([
+        {
+          name: "images",
+          maxCount: 10,
+        },
+        {
+          name: "avatar",
+          maxCount: 1,
+        },
+      ]),
+      project.updateImages,
+      project.updateProject
+    )
+    .patch(
+      permission.role([ROLE.ADMIN, ROLE.USER]),
+      upload.uploadImage.fields([
+        {
+          name: "images",
+          maxCount: 10,
+        },
+        {
+          name: "avatar",
+          maxCount: 1,
+        },
+      ]),
+      project.updateImages,
+      project.updateProjectFields
+    )
     .delete(permission.role([ROLE.ADMIN, ROLE.USER]), project.deteleProject);
-    app
+  app
     .route("/api/projects/:id/approve")
-    .post(permission.role([ROLE.ADMIN]), project.approveProject)
-    app
+    .post(permission.role([ROLE.ADMIN]), project.approveProject);
+  app
     .route("/api/projects/:id/request-approve")
-    .post(permission.role([ROLE.ADMIN]), project.requestApproveProject)
-    
+    .post(permission.role([ROLE.ADMIN]), project.requestApproveProject);
+  app.route("/api/projects/:id/shared-count").post(project.sharedCount);
 }
 
 export default projectRouter;

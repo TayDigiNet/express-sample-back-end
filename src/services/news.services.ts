@@ -408,3 +408,31 @@ export function validateImage(file: any): ResponseEntry<boolean> {
     };
   }
 }
+
+export async function sharedCount(id: number) {
+  const News = new NewsRepository();
+  try {
+    const news = await News.getNewsById({ id: id });
+    if (news) {
+      News.updateNews(news.id, { sharedCount: news.sharedCount + 1 });
+    }
+    return {
+      data: true,
+      status: {
+        code: 201,
+        message: "Successfull!",
+        success: true,
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      data: null,
+      status: {
+        code: 406,
+        message: "Not Acceptable!",
+        success: false,
+      },
+    };
+  }
+}

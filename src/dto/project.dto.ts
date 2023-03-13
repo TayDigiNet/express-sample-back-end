@@ -66,5 +66,6 @@ export interface ProjectInput {
   projectImages?: ProjectImageDTO[];
   removedImageNames?: string;
   draft?: boolean;
-  viewsCount: number;
+  viewsCount?: number;
+  shareCount?: number;
 }

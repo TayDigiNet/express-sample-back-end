@@ -716,3 +716,31 @@ export async function requestApproveProject(
     };
   }
 }
+
+export async function sharedCount(id: number) {
+  const Project = new ProjectRepository();
+  try {
+    const project = await Project.getProjectById({ id: id });
+    if (project) {
+      Project.updateProject(project.id, { shareCount: project.shareCount + 1 });
+    }
+    return {
+      data: true,
+      status: {
+        code: 201,
+        message: "Successfull!",
+        success: true,
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    return {
+      data: null,
+      status: {
+        code: 406,
+        message: "Not Acceptable!",
+        success: false,
+      },
+    };
+  }
+}
