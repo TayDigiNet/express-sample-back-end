@@ -6,8 +6,8 @@ import RedisContext from "../cache/redis";
 import ProjectDTO, { ProjectInput } from "../dto/project.dto";
 import ProjectRepository from "../repository/project.repository";
 import ProjectImageRepository from "../repository/project_image.repository";
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 import { ROLE, DateEnum } from "../configs/constants";
 
 export async function getProjects(
@@ -18,30 +18,42 @@ export async function getProjects(
   try {
     let meta = {};
     /** Build query options */
-    let options: Partial<QueryOptions & {ProjectCategoryId: number; CreaterId: number; ToDate: Date; FromDate: Date }> = queryOptions;
+    let options: Partial<
+      QueryOptions & {
+        ProjectCategoryId: number;
+        CreaterId: number;
+        ToDate: Date;
+        FromDate: Date;
+      }
+    > = queryOptions;
     if (typeof query.ProjectCategoryId !== "undefined") {
       options.ProjectCategoryId = parseInt(query.ProjectCategoryId, 0);
     }
     if (typeof query.DateEnum !== "undefined") {
-      // search createdDate 
+      // search createdDate
       options.ToDate = new Date();
-      if(query.DateEnum == DateEnum.DAY){
-        options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24))
+      if (query.DateEnum == DateEnum.DAY) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24
+        );
+      } else if (query.DateEnum == DateEnum.WEEK) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24 * 7
+        );
+      } else if (query.DateEnum == DateEnum.MONTH) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24 * 30
+        );
+      } else if (query.DateEnum == DateEnum.YEAR) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24 * 365
+        );
       }
-      else if(query.DateEnum == DateEnum.WEEK){
-        options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24 * 7))
-      }
-      else if(query.DateEnum == DateEnum.MONTH){
-        options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24 * 30))
-      }
-      else if(query.DateEnum == DateEnum.YEAR){
-        options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24 * 365))
-      }
-  }
+    }
     /** Query data */
     const records = await Project.getProjects(options);
 
-    if(queryOptions.limit != null && queryOptions.offset != null){
+    if (queryOptions.limit != null && queryOptions.offset != null) {
       /** Get pagination */
       const pageSize = records.rows.length;
       const pageCount = Math.ceil(records.count / queryOptions.limit);
@@ -62,7 +74,7 @@ export async function getProjects(
         message: "Successfull!",
         success: true,
       },
-      meta: meta
+      meta: meta,
     };
   } catch (error) {
     console.error(error);
@@ -83,11 +95,12 @@ export async function getProjectById(
 ): Promise<ResponseEntry<ProjectDTO | null>> {
   const Project = new ProjectRepository();
   try {
-    let options: Partial<QueryOptions & {id: number, UserId?: number }> = queryOptions;
+    let options: Partial<QueryOptions & { id: number; UserId?: number }> =
+      queryOptions;
     options.id = id;
     const record: any = await Project.getProjectById(options);
-    if(record){
-      await Project.updateProject(record.id, { viewsCount: record.viewsCount + 1 });
+    if (record) {
+      Project.updateProject(record.id, { viewsCount: record.viewsCount + 1 });
     }
     return {
       data: record as ProjectDTO,
@@ -118,30 +131,32 @@ export async function createProject(
   try {
     let published = true;
     let requestApproved = false;
-    if(user.role.name === ROLE.USER){
+    if (user.role.name === ROLE.USER) {
       published = false;
       requestApproved = true;
     }
-    if(data.draft === true){
+    if (data.draft === true) {
       //// handle draft content
       // input default value for the fields that are empty
-      if(!data.description){
+      if (!data.description) {
         data.description = "Thông tin này chưa được điền.";
       }
-      if(!data.content){
+      if (!data.content) {
         data.content = "Thông tin này chưa được điền.";
       }
-      if(!data.name){
+      if (!data.name) {
         data.name = "Thông tin này chưa được điền.";
       }
-      if(!data.plan){
+      if (!data.plan) {
         data.plan = "Thông tin này chưa được điền.";
       }
-      if(!data.launchDate){
+      if (!data.launchDate) {
         data.launchDate = new Date();
       }
-      if(!data.expiredAt){
-        data.expiredAt = new Date(data.launchDate.setDate(data.launchDate.getDate() + 10));
+      if (!data.expiredAt) {
+        data.expiredAt = new Date(
+          data.launchDate.setDate(data.launchDate.getDate() + 10)
+        );
       }
       requestApproved = false;
     }
@@ -151,7 +166,7 @@ export async function createProject(
       slug: slug,
       CreaterId: user.id,
       published: published,
-      requestApproved: requestApproved
+      requestApproved: requestApproved,
     });
     return {
       data: record as ProjectDTO,
@@ -181,14 +196,8 @@ export async function updateProject(
 ): Promise<ResponseEntry<ProjectDTO | null>> {
   const Project = new ProjectRepository();
   const ProjectImage = new ProjectImageRepository();
-  const {
-    name,
-    content,
-    description,
-    launchDate,
-    plan,
-    ProjectCategoryId
-  } = data;
+  const { name, content, description, launchDate, plan, ProjectCategoryId } =
+    data;
   if (
     !name ||
     !content ||
@@ -206,109 +215,137 @@ export async function updateProject(
       },
     };
   try {
-    const project = await Project.getProjectById({id: id});
+    const project = await Project.getProjectById({ id: id });
     let record = null;
 
-    if(user.role.name === ROLE.USER){
+    if (user.role.name === ROLE.USER) {
       data.UserId = user.id;
     }
-    if(!project?.published || user.role.name === ROLE.ADMIN){
-      if(data.draft === true && project?.draft === true){
+    if (!project?.published || user.role.name === ROLE.ADMIN) {
+      if (data.draft === true && project?.draft === true) {
         //// handle draft content
         // input default value for the fields that are empty
-        if(!data.description){
+        if (!data.description) {
           data.description = "Thông tin này chưa được điền.";
         }
-        if(!data.content){
+        if (!data.content) {
           data.content = "Thông tin này chưa được điền.";
         }
-        if(!data.name){
+        if (!data.name) {
           data.name = "Thông tin này chưa được điền.";
         }
-        if(!data.plan){
+        if (!data.plan) {
           data.plan = "Thông tin này chưa được điền.";
         }
-        if(!data.launchDate){
+        if (!data.launchDate) {
           data.launchDate = new Date(data.launchDate);
         }
-        if(!data.expiredAt){
+        if (!data.expiredAt) {
           data.launchDate = new Date(data.launchDate);
-          data.expiredAt = new Date(data.launchDate.setDate(data.launchDate.getDate() + 10));
+          data.expiredAt = new Date(
+            data.launchDate.setDate(data.launchDate.getDate() + 10)
+          );
         }
-      }
-      else{
-        if(project?.draft === true){
+      } else {
+        if (project?.draft === true) {
           data.requestApproved = true;
           data.draft = false;
-        }
-        else{
+        } else {
           delete data.draft;
         }
       }
 
       // remove avatar
       let pathAvatar = "";
-      if(data.imageAvatarName){
-        if(project && project.imageAvatarName){
-          pathAvatar = path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, project.imageAvatarName);
+      if (data.imageAvatarName) {
+        if (project && project.imageAvatarName) {
+          pathAvatar = path.join(
+            process.env.ROOT_FOLDER,
+            process.env.UPLOAD_PATH,
+            process.env.FOLDER_PROJECT,
+            project.imageAvatarName
+          );
         }
       }
       // update project
       record = await Project.updateProject(id, data);
       // remove images
-      if(data.removedImageIds){
+      if (data.removedImageIds) {
         let removedImageIds = JSON.parse(data.removedImageIds || "");
         for (const imageId of removedImageIds as number[]) {
           const projectImage = await ProjectImage.getProjectImageById(imageId);
-          if(projectImage){
+          if (projectImage) {
             await ProjectImage.deleteProjectImage(imageId);
-            try{
-              fs.unlinkSync(path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, projectImage.imageName));
-            }catch(error){
+            try {
+              fs.unlinkSync(
+                path.join(
+                  process.env.ROOT_FOLDER,
+                  process.env.UPLOAD_PATH,
+                  process.env.FOLDER_PROJECT,
+                  projectImage.imageName
+                )
+              );
+            } catch (error) {
               console.error(error);
             }
           }
         }
       }
-      if(pathAvatar){
-        try{
+      if (pathAvatar) {
+        try {
           fs.unlinkSync(pathAvatar);
-        }catch(error){
+        } catch (error) {
           console.error(error);
         }
       }
-    }
-    else{
+    } else {
       // handle draft project
-      if(project.requestUpdated && project.requestUpdated.projectImages){
-        if(!data.removedImageNames){
+      if (project.requestUpdated && project.requestUpdated.projectImages) {
+        if (!data.removedImageNames) {
           data.removedImageNames = "";
         }
-        let projectImages = project.requestUpdated.projectImages.filter(obj => !data.removedImageNames?.includes(obj.imageName));
-        data.projectImages = [...projectImages, ...data.projectImages || []]
+        let projectImages = project.requestUpdated.projectImages.filter(
+          (obj) => !data.removedImageNames?.includes(obj.imageName)
+        );
+        data.projectImages = [...projectImages, ...(data.projectImages || [])];
       }
-      record = await Project.updateProject(id, {requestUpdated: data, requestApproved: true});
-      if(project.requestUpdated){
+      record = await Project.updateProject(id, {
+        requestUpdated: data,
+        requestApproved: true,
+      });
+      if (project.requestUpdated) {
         let projectTemp = project.requestUpdated as ProjectInput;
         let pathAvatar = "";
         // remove avatar
-        if(data.imageAvatarName){
-          if(projectTemp.imageAvatarName){
-            pathAvatar = path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, projectTemp.imageAvatarName);
-            try{
+        if (data.imageAvatarName) {
+          if (projectTemp.imageAvatarName) {
+            pathAvatar = path.join(
+              process.env.ROOT_FOLDER,
+              process.env.UPLOAD_PATH,
+              process.env.FOLDER_PROJECT,
+              projectTemp.imageAvatarName
+            );
+            try {
               fs.unlinkSync(pathAvatar);
-            }catch(error){
+            } catch (error) {
               console.error(error);
             }
           }
         }
         // remove images
-        if(data.removedImageNames){
-          let removedImageNames = data.removedImageNames.split(',');
+        if (data.removedImageNames) {
+          let removedImageNames = data.removedImageNames.split(",");
           for (const imageName of removedImageNames as string[]) {
-            try{
-              fs.unlinkSync(path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, imageName));
-            }catch(error){
+            try {
+              fs.unlinkSync(
+                path.join(
+                  process.env.ROOT_FOLDER,
+                  process.env.UPLOAD_PATH,
+                  process.env.FOLDER_PROJECT,
+                  imageName
+                )
+              );
+            } catch (error) {
               console.error(error);
             }
           }
@@ -347,107 +384,135 @@ export async function updateProjectFields(
   try {
     // remove avatar
     let pathAvatar = "";
-    const project = await Project.getProjectById({id: id});
+    const project = await Project.getProjectById({ id: id });
     let record = null;
 
-    if(user.role.name === ROLE.USER){
+    if (user.role.name === ROLE.USER) {
       data.UserId = user.id;
     }
-    if(!project?.published || user.role.name === ROLE.ADMIN){
-      if(data.draft === true && project?.draft === true){
+    if (!project?.published || user.role.name === ROLE.ADMIN) {
+      if (data.draft === true && project?.draft === true) {
         //// handle draft content
         // input default value for the fields that are empty
-        if(!data.description){
+        if (!data.description) {
           data.description = "Thông tin này chưa được điền.";
         }
-        if(!data.content){
+        if (!data.content) {
           data.content = "Thông tin này chưa được điền.";
         }
-        if(!data.name){
+        if (!data.name) {
           data.name = "Thông tin này chưa được điền.";
         }
-        if(!data.plan){
+        if (!data.plan) {
           data.plan = "Thông tin này chưa được điền.";
         }
-        if(!data.launchDate){
+        if (!data.launchDate) {
           data.launchDate = new Date();
         }
-        if(!data.expiredAt){
-          data.expiredAt = new Date(data.launchDate.setDate(data.launchDate.getDate() + 10));
+        if (!data.expiredAt) {
+          data.expiredAt = new Date(
+            data.launchDate.setDate(data.launchDate.getDate() + 10)
+          );
         }
-      }
-      else{
-        if(project?.draft === true){
+      } else {
+        if (project?.draft === true) {
           data.requestApproved = true;
           data.draft = false;
-        }
-        else{
+        } else {
           delete data.draft;
         }
       }
 
-      if(data.imageAvatarName){
-        if(project && project.imageAvatarName){
-          pathAvatar = path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, project.imageAvatarName);
+      if (data.imageAvatarName) {
+        if (project && project.imageAvatarName) {
+          pathAvatar = path.join(
+            process.env.ROOT_FOLDER,
+            process.env.UPLOAD_PATH,
+            process.env.FOLDER_PROJECT,
+            project.imageAvatarName
+          );
         }
       }
       // update project
       record = await Project.updateProject(id, data);
       // remove images
-      if(data.removedImageIds){
+      if (data.removedImageIds) {
         let removedImageIds = JSON.parse(data.removedImageIds || "");
         for (const imageId of removedImageIds as number[]) {
           const projectImage = await ProjectImage.getProjectImageById(imageId);
-          if(projectImage){
+          if (projectImage) {
             await ProjectImage.deleteProjectImage(imageId);
-            try{
-              fs.unlinkSync(path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, projectImage.imageName));
-            }catch(error){
+            try {
+              fs.unlinkSync(
+                path.join(
+                  process.env.ROOT_FOLDER,
+                  process.env.UPLOAD_PATH,
+                  process.env.FOLDER_PROJECT,
+                  projectImage.imageName
+                )
+              );
+            } catch (error) {
               console.error(error);
             }
           }
         }
       }
-      if(pathAvatar){
-        try{
+      if (pathAvatar) {
+        try {
           fs.unlinkSync(pathAvatar);
-        }catch(error){
+        } catch (error) {
           console.error(error);
         }
       }
-    }
-    else{
+    } else {
       // handle draft project
-      if(project.requestUpdated && project.requestUpdated.projectImages){
-        if(!data.removedImageNames){
+      if (project.requestUpdated && project.requestUpdated.projectImages) {
+        if (!data.removedImageNames) {
           data.removedImageNames = "";
         }
-        let projectImages = project.requestUpdated.projectImages.filter(obj => !data.removedImageNames?.includes(obj.imageName));
+        let projectImages = project.requestUpdated.projectImages.filter(
+          (obj) => !data.removedImageNames?.includes(obj.imageName)
+        );
         console.log(projectImages);
-        data.projectImages = [...projectImages, ...data.projectImages || []]
+        data.projectImages = [...projectImages, ...(data.projectImages || [])];
       }
-      record = await Project.updateProject(id, {requestUpdated: data, requestApproved: true});
-      if(project.requestUpdated){
+      record = await Project.updateProject(id, {
+        requestUpdated: data,
+        requestApproved: true,
+      });
+      if (project.requestUpdated) {
         let projectTemp = project.requestUpdated as ProjectInput;
         let pathAvatar = "";
         // remove avatar
-        if(data.imageAvatarName){
-          if(projectTemp.imageAvatarName){
-            pathAvatar = path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, projectTemp.imageAvatarName);
-            try{
+        if (data.imageAvatarName) {
+          if (projectTemp.imageAvatarName) {
+            pathAvatar = path.join(
+              process.env.ROOT_FOLDER,
+              process.env.UPLOAD_PATH,
+              process.env.FOLDER_PROJECT,
+              projectTemp.imageAvatarName
+            );
+            try {
               fs.unlinkSync(pathAvatar);
-            }catch(error){
+            } catch (error) {
               console.error(error);
             }
           }
         }
         // remove images
-        if(data.removedImageNames){
-          let removedImageNames = data.removedImageNames.split(',');
+        if (data.removedImageNames) {
+          let removedImageNames = data.removedImageNames.split(",");
           for (const imageName of removedImageNames as string[]) {
-            try{
-              fs.unlinkSync(path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, imageName));
-            }catch(error){
+            try {
+              fs.unlinkSync(
+                path.join(
+                  process.env.ROOT_FOLDER,
+                  process.env.UPLOAD_PATH,
+                  process.env.FOLDER_PROJECT,
+                  imageName
+                )
+              );
+            } catch (error) {
               console.error(error);
             }
           }
@@ -512,18 +577,18 @@ export async function deleteProject(
   }
 }
 
-export function validateImage(file: any): ResponseEntry<boolean>{
+export function validateImage(file: any): ResponseEntry<boolean> {
   let size = parseInt(process.env.SIZE_IMAGE || "0", 0) * 1024 * 1024;
-  if(file.size > size){
+  if (file.size > size) {
     return {
       data: false,
       status: {
         code: 406,
         message: "The image size can't be larger than 10MB",
         success: false,
-      }};
-  }
-  else{
+      },
+    };
+  } else {
     return {
       data: true,
       status: {
@@ -531,7 +596,7 @@ export function validateImage(file: any): ResponseEntry<boolean>{
         message: "Successfull!",
         success: true,
       },
-    }
+    };
   }
 }
 
@@ -544,32 +609,46 @@ export async function approveProject(
   try {
     let record = null;
     let pathAvatar = "";
-    let project: any = await Project.getProjectById({id: id});
+    let project: any = await Project.getProjectById({ id: id });
     const ProjectImage = new ProjectImageRepository();
-    if(data.published && project.requestUpdated){
+    if (data.published && project.requestUpdated) {
       data = project.requestUpdated;
       data.published = true;
       // remove avatar
-      if(project.requestUpdated.imageAvatarName){
-        if(project.imageAvatarName){
-          pathAvatar = path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, project.imageAvatarName);
-          try{
+      if (project.requestUpdated.imageAvatarName) {
+        if (project.imageAvatarName) {
+          pathAvatar = path.join(
+            process.env.ROOT_FOLDER,
+            process.env.UPLOAD_PATH,
+            process.env.FOLDER_PROJECT,
+            project.imageAvatarName
+          );
+          try {
             fs.unlinkSync(pathAvatar);
-          }catch(error){
+          } catch (error) {
             console.error(error);
           }
         }
       }
       // remove images
-      if(project.requestUpdated.removedImageIds){
-        let removedImageIds = JSON.parse(project.requestUpdated.removedImageIds || "");
+      if (project.requestUpdated.removedImageIds) {
+        let removedImageIds = JSON.parse(
+          project.requestUpdated.removedImageIds || ""
+        );
         for (const imageId of removedImageIds as number[]) {
           const projectImage = await ProjectImage.getProjectImageById(imageId);
-          if(projectImage){
+          if (projectImage) {
             await ProjectImage.deleteProjectImage(imageId);
-            try{
-              fs.unlinkSync(path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_PROJECT, projectImage.imageName));
-            }catch(error){
+            try {
+              fs.unlinkSync(
+                path.join(
+                  process.env.ROOT_FOLDER,
+                  process.env.UPLOAD_PATH,
+                  process.env.FOLDER_PROJECT,
+                  projectImage.imageName
+                )
+              );
+            } catch (error) {
               console.error(error);
             }
           }
@@ -578,7 +657,7 @@ export async function approveProject(
       data.requestUpdated = null;
       delete data.ProjectCategoryId;
     }
-    
+
     data.requestApproved = false;
 
     record = await Project.updateProject(id, data);
@@ -612,7 +691,7 @@ export async function requestApproveProject(
   const Project = new ProjectRepository();
   try {
     let record = null;
-    if(user.role.name === ROLE.USER){
+    if (user.role.name === ROLE.USER) {
       data.UserId = user.id;
     }
     record = await Project.updateProject(id, data);

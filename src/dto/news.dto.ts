@@ -35,4 +35,6 @@ export interface NewsInput {
   imageBannerOriginalName?: string;
   imageBannerDimensions?: string;
   draft?: boolean;
+  viewsCount?: number;
+  sharedCount?: number;
 }

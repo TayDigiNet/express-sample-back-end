@@ -6,8 +6,8 @@ import RedisContext from "../cache/redis";
 import EventDTO, { EventInput } from "../dto/event.dto";
 import EventRepository from "../repository/event.repository";
 import EventImageRepository from "../repository/event_image.repository";
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 export async function getEvents(
   query: any,
@@ -20,7 +20,7 @@ export async function getEvents(
     let options: Partial<QueryOptions & { CreaterId: number }> = queryOptions;
     /** Query data */
     const records = await Event.getEvents(options);
-    if(queryOptions.limit != null && queryOptions.offset != null){
+    if (queryOptions.limit != null && queryOptions.offset != null) {
       /** Get pagination */
       const pageSize = records.rows.length;
       const pageCount = Math.ceil(records.count / queryOptions.limit);
@@ -33,7 +33,7 @@ export async function getEvents(
       meta = {
         pagination,
       };
-    } 
+    }
     return {
       data: records.rows as EventDTO[],
       status: {
@@ -41,7 +41,7 @@ export async function getEvents(
         message: "Successfull!",
         success: true,
       },
-      meta: meta
+      meta: meta,
     };
   } catch (error) {
     console.error(error);
@@ -58,23 +58,30 @@ export async function getEvents(
 
 export async function getEventById(
   id: number,
-  queryOptions: Partial<QueryOptions> & {CreaterId?: number}
+  queryOptions: Partial<QueryOptions> & { CreaterId?: number }
 ): Promise<ResponseEntry<EventDTO | null>> {
   const Event = new EventRepository();
   const redis = RedisContext.getConnect();
   try {
     /** Build query options */
-    let options: Partial<QueryOptions & {id: number, UserId?: number }> = queryOptions;
+    let options: Partial<QueryOptions & { id: number; UserId?: number }> =
+      queryOptions;
     options.id = id;
     const record: any = await Event.getEventById(options);
-    if(record){
-      await Event.updateEvent(record.id, { viewsCount: record.viewsCount + 1, playVideoCount: record.playVideoCount + 1 });
+    if (record) {
+      await Event.updateEvent(record.id, {
+        viewsCount: record.viewsCount + 1,
+        playVideoCount: record.playVideoCount + 1,
+      });
     }
     // try {
     //   redis.setEx(`event:${id}`, 3600, JSON.stringify(record.dataValues));
     // } catch (error) {
     //   console.error(error);
     // }
+    if (record) {
+      Event.updateEvent(record.id, { viewsCount: record.viewsCount + 1 });
+    }
     return {
       data: record as EventDTO,
       status: {
@@ -100,29 +107,30 @@ export async function createEvent(
   data: EventInput,
   user: UserDTO
 ): Promise<ResponseEntry<EventDTO | null>> {
-  const Event = new EventRepository();  
+  const Event = new EventRepository();
   try {
-    if(data.draft === true){
+    if (data.draft === true) {
       //// handle draft content
       // input default value for the fields that are empty
       data.published = false;
-      if(!data.startedDateAt){
+      if (!data.startedDateAt) {
         data.startedDateAt = new Date();
       }
-      if(!data.endedDateAt){
-        data.endedDateAt = new Date(data.startedDateAt.setDate(data.startedDateAt.getDate() + 10));
+      if (!data.endedDateAt) {
+        data.endedDateAt = new Date(
+          data.startedDateAt.setDate(data.startedDateAt.getDate() + 10)
+        );
       }
-      if(!data.location){
+      if (!data.location) {
         data.location = "Thông tin này chưa được điền.";
       }
-      if(!data.content){
+      if (!data.content) {
         data.content = "Thông tin này chưa được điền.";
       }
-      if(!data.name){
+      if (!data.name) {
         data.name = "Thông tin này chưa được điền.";
       }
-    }
-    else{
+    } else {
       data.published = true;
     }
     const slug = toSlug(data.name);
@@ -159,33 +167,33 @@ export async function updateEvent(
   const EventImage = new EventImageRepository();
   const Event = new EventRepository();
   try {
-    let event = await Event.getEventById({id: id});
-    if(data.draft === true && event?.draft === true){
+    let event = await Event.getEventById({ id: id });
+    if (data.draft === true && event?.draft === true) {
       //// handle draft content
       // input default value for the fields that are empty
       data.published = false;
-      if(!data.startedDateAt){
+      if (!data.startedDateAt) {
         data.startedDateAt = new Date();
       }
-      if(!data.endedDateAt){
-        data.endedDateAt = new Date(data.startedDateAt.setDate(data.startedDateAt.getDate() + 10));
+      if (!data.endedDateAt) {
+        data.endedDateAt = new Date(
+          data.startedDateAt.setDate(data.startedDateAt.getDate() + 10)
+        );
       }
-      if(!data.location){
+      if (!data.location) {
         data.location = "Thông tin này chưa được điền.";
       }
-      if(!data.content){
+      if (!data.content) {
         data.content = "Thông tin này chưa được điền.";
       }
-      if(!data.name){
+      if (!data.name) {
         data.name = "Thông tin này chưa được điền.";
       }
-    }
-    else{
-      if(event?.draft === true){
+    } else {
+      if (event?.draft === true) {
         data.draft = false;
         data.published = true;
-      }
-      else{
+      } else {
         // delete draft field
         delete data.draft;
       }
@@ -193,13 +201,20 @@ export async function updateEvent(
 
     const record = await Event.updateEvent(id, data);
     // remove images
-    if(data.removedImageIds){
+    if (data.removedImageIds) {
       let removedImageIds = JSON.parse(data.removedImageIds || "");
       for (const imageId of removedImageIds as number[]) {
         const eventImage = await EventImage.getEventImageById(imageId);
-        if(eventImage){
+        if (eventImage) {
           await EventImage.deleteEventImage(imageId);
-          fs.unlinkSync(path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_EVENT, eventImage.imageName));
+          fs.unlinkSync(
+            path.join(
+              process.env.ROOT_FOLDER,
+              process.env.UPLOAD_PATH,
+              process.env.FOLDER_EVENT,
+              eventImage.imageName
+            )
+          );
         }
       }
     }
@@ -231,33 +246,33 @@ export async function updateEventFields(
   const EventImage = new EventImageRepository();
   const Event = new EventRepository();
   try {
-    let event = await Event.getEventById({id: id});
-    if(data.draft === true && event?.draft === true){
+    let event = await Event.getEventById({ id: id });
+    if (data.draft === true && event?.draft === true) {
       //// handle draft content
       // input default value for the fields that are empty
       data.published = false;
-      if(!data.startedDateAt){
+      if (!data.startedDateAt) {
         data.startedDateAt = new Date();
       }
-      if(!data.endedDateAt){
-        data.endedDateAt = new Date(data.startedDateAt.setDate(data.startedDateAt.getDate() + 10));
+      if (!data.endedDateAt) {
+        data.endedDateAt = new Date(
+          data.startedDateAt.setDate(data.startedDateAt.getDate() + 10)
+        );
       }
-      if(!data.location){
+      if (!data.location) {
         data.location = "Thông tin này chưa được điền.";
       }
-      if(!data.content){
+      if (!data.content) {
         data.content = "Thông tin này chưa được điền.";
       }
-      if(!data.name){
+      if (!data.name) {
         data.name = "Thông tin này chưa được điền.";
       }
-    }
-    else{
-      if(event?.draft === true){
+    } else {
+      if (event?.draft === true) {
         data.draft = false;
         data.published = true;
-      }
-      else{
+      } else {
         // delete draft field
         delete data.draft;
       }
@@ -265,13 +280,20 @@ export async function updateEventFields(
 
     const record = await Event.updateEvent(id, data);
     // remove images
-    if(data.removedImageIds){
+    if (data.removedImageIds) {
       let removedImageIds = JSON.parse(data.removedImageIds || "");
       for (const imageId of removedImageIds as number[]) {
         const eventImage = await EventImage.getEventImageById(imageId);
-        if(eventImage){
+        if (eventImage) {
           await EventImage.deleteEventImage(imageId);
-          fs.unlinkSync(path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_EVENT, eventImage.imageName));
+          fs.unlinkSync(
+            path.join(
+              process.env.ROOT_FOLDER,
+              process.env.UPLOAD_PATH,
+              process.env.FOLDER_EVENT,
+              eventImage.imageName
+            )
+          );
         }
       }
     }
@@ -336,7 +358,7 @@ export async function publishedEvent(
 ): Promise<ResponseEntry<EventDTO | null>> {
   const Event = new EventRepository();
   try {
-    const record = await Event.updateEvent(id, {published: published});
+    const record = await Event.updateEvent(id, { published: published });
     return {
       data: record as EventDTO,
       status: {
@@ -358,18 +380,18 @@ export async function publishedEvent(
   }
 }
 
-export function validateImage(file: any): ResponseEntry<boolean>{
+export function validateImage(file: any): ResponseEntry<boolean> {
   let size = parseInt(process.env.SIZE_IMAGE || "0", 0) * 1024 * 1024;
-  if(file.size > size){
+  if (file.size > size) {
     return {
       data: false,
       status: {
         code: 406,
         message: "The image size can't be larger than 10MB",
         success: false,
-      }};
-  }
-  else{
+      },
+    };
+  } else {
     return {
       data: true,
       status: {
@@ -377,6 +399,6 @@ export function validateImage(file: any): ResponseEntry<boolean>{
         message: "Successfull!",
         success: true,
       },
-    }
+    };
   }
 }

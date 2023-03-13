@@ -6,8 +6,8 @@ import NewsRepository from "../repository/news.repository";
 import { Pagination, ResponseEntry } from "../typings";
 import RedisContext from "../cache/redis";
 import { DateEnum } from "../configs/constants";
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 export async function getNewses(
   query: any,
@@ -18,31 +18,41 @@ export async function getNewses(
     let meta = {};
     /** Build query options */
     let options: Partial<
-      QueryOptions & { CategoryId: number; CreaterId: number; ToDate: Date; FromDate: Date }
+      QueryOptions & {
+        CategoryId: number;
+        CreaterId: number;
+        ToDate: Date;
+        FromDate: Date;
+      }
     > = queryOptions;
     if (typeof query.CategoryId !== "undefined") {
       options.CategoryId = parseInt(query.CategoryId, 0);
     }
     if (typeof query.DateEnum !== "undefined") {
-        // search createdDate 
-        options.ToDate = new Date();
-        if(query.DateEnum == DateEnum.DAY){
-          options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24))
-        }
-        else if(query.DateEnum == DateEnum.WEEK){
-          options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24 * 7))
-        }
-        else if(query.DateEnum == DateEnum.MONTH){
-          options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24 * 30))
-        }
-        else if(query.DateEnum == DateEnum.YEAR){
-          options.FromDate = new Date(options.ToDate.getTime() - (1000 * 60 * 60 * 24 * 365))
-        }
+      // search createdDate
+      options.ToDate = new Date();
+      if (query.DateEnum == DateEnum.DAY) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24
+        );
+      } else if (query.DateEnum == DateEnum.WEEK) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24 * 7
+        );
+      } else if (query.DateEnum == DateEnum.MONTH) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24 * 30
+        );
+      } else if (query.DateEnum == DateEnum.YEAR) {
+        options.FromDate = new Date(
+          options.ToDate.getTime() - 1000 * 60 * 60 * 24 * 365
+        );
+      }
     }
     /** Query data */
     const newses = await News.getNewses(options);
 
-    if(queryOptions.limit != null && queryOptions.offset != null){
+    if (queryOptions.limit != null && queryOptions.offset != null) {
       /** Get pagination */
       const pageSize = newses.rows.length;
       const pageCount = Math.ceil(newses.count / queryOptions.limit);
@@ -85,7 +95,8 @@ export async function getNewsById(
   const News = new NewsRepository();
   const redis = RedisContext.getConnect();
   try {
-    let options: Partial<QueryOptions & {id: number, UserId?: number }> = queryOptions;
+    let options: Partial<QueryOptions & { id: number; UserId?: number }> =
+      queryOptions;
     options.id = id;
     const news: any = await News.getNewsById(options);
     // try {
@@ -93,6 +104,9 @@ export async function getNewsById(
     // } catch (error) {
     //   console.error(error);
     // }
+    if (news) {
+      News.updateNews(news.id, { viewsCount: news.viewsCount + 1 });
+    }
     return {
       data: news as NewsDTO,
       status: {
@@ -119,21 +133,20 @@ export async function createNews(
   user: UserDTO
 ): Promise<ResponseEntry<NewsDTO | null>> {
   const News = new NewsRepository();
-  if(data.draft === true){
+  if (data.draft === true) {
     //// handle draft content
     // input default value for the fields that are empty
     data.published = false;
-    if(!data.description){
+    if (!data.description) {
       data.description = "Thông tin này chưa được điền.";
     }
-    if(!data.content){
+    if (!data.content) {
       data.content = "Thông tin này chưa được điền.";
     }
-    if(!data.name){
+    if (!data.name) {
       data.name = "Thông tin này chưa được điền.";
     }
-  }
-  else{
+  } else {
     data.published = true;
   }
   const slug = toSlug(data.name);
@@ -182,42 +195,44 @@ export async function updateNews(
   try {
     // remove banner
     let pathBanner = "";
-    const oldnews = await News.getNewsById({id: id});
-    if(data.imageBannerName){
-      if(oldnews && oldnews.imageBannerName){
-        pathBanner = path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_NEWS, oldnews.imageBannerName);
+    const oldnews = await News.getNewsById({ id: id });
+    if (data.imageBannerName) {
+      if (oldnews && oldnews.imageBannerName) {
+        pathBanner = path.join(
+          process.env.ROOT_FOLDER,
+          process.env.UPLOAD_PATH,
+          process.env.FOLDER_NEWS,
+          oldnews.imageBannerName
+        );
       }
     }
-    if(data.draft === true && oldnews?.draft === true){
+    if (data.draft === true && oldnews?.draft === true) {
       //// handle draft content
       // input default value for the fields that are empty
       data.published = false;
-      if(!data.description){
+      if (!data.description) {
         data.description = "Thông tin này chưa được điền.";
       }
-      if(!data.content){
+      if (!data.content) {
         data.content = "Thông tin này chưa được điền.";
       }
-      if(!data.name){
+      if (!data.name) {
         data.name = "Thông tin này chưa được điền.";
       }
-    }
-    else{
-      if(oldnews?.draft === true){
+    } else {
+      if (oldnews?.draft === true) {
         data.draft = false;
         data.published = true;
-      }
-      else{
+      } else {
         // delete draft field
         delete data.draft;
       }
     }
 
-
     // update news
     const news = await News.updateNews(id, data);
     // remove banner file
-    if(pathBanner){
+    if (pathBanner) {
       fs.unlinkSync(pathBanner);
     }
     return {
@@ -249,32 +264,35 @@ export async function updateNewsFields(
   try {
     // remove banner
     let pathBanner = "";
-    const oldnews = await News.getNewsById({id: id});
-    if(data.imageBannerName){
-      if(oldnews && oldnews.imageBannerName){
-        pathBanner = path.join(process.env.ROOT_FOLDER, process.env.UPLOAD_PATH, process.env.FOLDER_NEWS, oldnews.imageBannerName);
+    const oldnews = await News.getNewsById({ id: id });
+    if (data.imageBannerName) {
+      if (oldnews && oldnews.imageBannerName) {
+        pathBanner = path.join(
+          process.env.ROOT_FOLDER,
+          process.env.UPLOAD_PATH,
+          process.env.FOLDER_NEWS,
+          oldnews.imageBannerName
+        );
       }
     }
-    if(data.draft === true && oldnews?.draft === true){
+    if (data.draft === true && oldnews?.draft === true) {
       //// handle draft content
       // input default value for the fields that are empty
       data.published = false;
-      if(!data.description){
+      if (!data.description) {
         data.description = "Thông tin này chưa được điền.";
       }
-      if(!data.content){
+      if (!data.content) {
         data.content = "Thông tin này chưa được điền.";
       }
-      if(!data.name){
+      if (!data.name) {
         data.name = "Thông tin này chưa được điền.";
       }
-    }
-    else{
-      if(oldnews?.draft === true){
+    } else {
+      if (oldnews?.draft === true) {
         data.draft = false;
         data.published = true;
-      }
-      else{
+      } else {
         // delete draft field
         delete data.draft;
       }
@@ -283,7 +301,7 @@ export async function updateNewsFields(
     // update news
     const news = await News.updateNews(id, data);
     // remove banner file
-    if(pathBanner){
+    if (pathBanner) {
       fs.unlinkSync(pathBanner);
     }
     return {
@@ -347,7 +365,7 @@ export async function publishedNews(
 ): Promise<ResponseEntry<NewsDTO | null>> {
   const News = new NewsRepository();
   try {
-    const record = await News.updateNews(id, {published: published});
+    const record = await News.updateNews(id, { published: published });
     return {
       data: record as NewsDTO,
       status: {
@@ -368,18 +386,18 @@ export async function publishedNews(
     };
   }
 }
-export function validateImage(file: any): ResponseEntry<boolean>{
+export function validateImage(file: any): ResponseEntry<boolean> {
   let size = parseInt(process.env.SIZE_IMAGE || "0", 0) * 1024 * 1024;
-  if(file.size > size){
+  if (file.size > size) {
     return {
       data: false,
       status: {
         code: 406,
         message: "The image size can't be larger than 10MB",
         success: false,
-      }};
-  }
-  else{
+      },
+    };
+  } else {
     return {
       data: true,
       status: {
@@ -387,6 +405,6 @@ export function validateImage(file: any): ResponseEntry<boolean>{
         message: "Successfull!",
         success: true,
       },
-    }
+    };
   }
 }
